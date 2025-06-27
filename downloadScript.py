@@ -32,9 +32,9 @@ while lines:
     # you need to be logged in to exhentai and have the cookie extension to get these values
     # https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm?hl=en-US
     COOKIES = {
-        'ipb_member_id': '870684',
-        'ipb_pass_hash': 'e6856e62b5c6e095369a9dac0660573c',
-        'igneous': '3cor7814melin91ij'
+        'ipb_member_id': 'XXXXXXXXX',
+        'ipb_pass_hash': 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
+        'igneous': 'XXXXXXXXXXXXXXXXXX'
     }
 
     HEADERS = {
