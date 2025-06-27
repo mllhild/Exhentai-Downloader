@@ -16,7 +16,15 @@ if not lines:
     exit(1)
 
 BASE_URL = "https://exhentai.org"
+
+gallery_count_initial = len(lines)
+print(f"{gallery_count_initial} galleries to download")
+gallery_counter = 0
+failed_gallery_counter = 0
 while lines:
+    gallery_count = len(lines)
+    print(f"{gallery_counter} galleries downloaded")
+    print(f"{gallery_count} of {gallery_count_initial} galleries left to download")
     GALLERY_URL = lines.pop(0).strip()  # removes the first element and returns it, then remove any trailing newline or spaces
 
 
@@ -231,7 +239,7 @@ while lines:
                         if res.status_code == 200:
                             with open(image_path, 'wb') as f:
                                 f.write(res.content)
-                            print(f"Downloaded: {image_name}")
+                            print(f"Gallery {gallery_counter}, F.gal {failed_gallery_counter}, F.Img. {imagesFailed}, Download {imagecounter}/{url_count}: {image_name}")
                             all_gallery_image_urls.append(img_url)
                             imagecounter += 1
                             break
@@ -247,6 +255,7 @@ while lines:
                         print(f"Failed to download after {max_retries} attempts: {img_url}")
                         all_failed_gallery_image_urls.append(img_url)
                         imagesFailed += 1
+                        print(f"Gallery {gallery_counter}, F.gal {failed_gallery_counter}, F.Img. {imagesFailed},")
             else:
                 print("Image tag with 'src' not found in div#i3")
         else:
@@ -267,6 +276,7 @@ while lines:
     # Update Lists
     # Failed
     if imagesFailed >= 1:
+        failed_gallery_counter += 1
         with open(os.path.join(current_directory, "FailedToDownloadGalleries.txt"), 'a', encoding='utf-8') as f:
             f.write(url + '\n')
     # Update ToDownload file
@@ -276,7 +286,11 @@ while lines:
     if imagesFailed == 0:
         with open(os.path.join(current_directory, "DownloadedGalleries.txt"), 'a', encoding='utf-8') as f:
             f.write(url + '\n')
-            
+    
+    print("Download Completed")
+    gallery_counter += 1
+    print(f"Downloaded {imagecounter} of {url_count} images")
+    print(f"{imagesFailed} images failed to download") 
     print("Cooldown of 20 to 30 seconds for anti scraping detection")        
     time.sleep(random.uniform(20, 30))
 
