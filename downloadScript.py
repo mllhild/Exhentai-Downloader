@@ -24,9 +24,9 @@ while lines:
     # you need to be logged in to exhentai and have the cookie extension to get these values
     # https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm?hl=en-US
     COOKIES = {
-        'ipb_member_id': 'XXXXXXXXX',
-        'ipb_pass_hash': 'XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
-        'igneous': 'XXXXXXXXXXXXXXXXXX'
+        'ipb_member_id': '870684',
+        'ipb_pass_hash': 'e6856e62b5c6e095369a9dac0660573c',
+        'igneous': '3cor7814melin91ij'
     }
 
     HEADERS = {
@@ -196,86 +196,74 @@ while lines:
                 print(a['href'])
                 all_image_page_urls.append(a['href'])
         
-        time.sleep(5)  # wait 10 seconds before next request
+        time.sleep(random.uniform(4, 6))  # wait 10 seconds before next request
 
 
     with open(os.path.join(download_path_meta, "ResizedPageUrls.txt"), 'w', encoding='utf-8') as f:
          for page in all_image_page_urls:
             f.write(page + '\n')
     print(f"Saved Resized Image Page Urls")
-
-
-    # --- Step 5: Get Gallery Original Image URLs ---
-    all_original_image_urls = []
-    for url in all_image_page_urls:
-        res = session.get(url)
-        soup = BeautifulSoup(res.content, 'html.parser')
-        
-        i6_div = soup.find('div', id='i6')
-        if i6_div:
-            inner_divs = i6_div.find_all('div')
-            if len(inner_divs) >= 3:
-                third_div = inner_divs[2]
-                a_tag = third_div.find('a', href=True)
-                if a_tag:
-                    href = a_tag['href']
-                    print(href)
-                    all_original_image_urls.append(href)
-
-    with open(os.path.join(download_path_meta, "OriginalImageURLs.txt"), 'w', encoding='utf-8') as f:
-         for page in all_original_image_urls:
-            f.write(page + '\n')
-    print(f"Saved Original Image Urls")
-
-
-    # --- Step 6: Download Original Images ---
-    MAX_RETRIES = 5
+    
+        # --- Step 4.5: Download Gallery Images ---
+    all_gallery_image_urls = []
+    all_failed_gallery_image_urls = []
     imagesFailed = 0
     retryAttemps = 0
     imagecounter = 0
-    failed_urls = []
-    url_count = len(all_original_image_urls)
-    for url in all_original_image_urls:
-        imagecounter += 1
-        image_name = os.path.basename(url)
-        image_path = os.path.join(download_path, image_name)
+    url_count = len(all_image_page_urls)
+    for url in all_image_page_urls:
+        time.sleep(random.uniform(3, 4))
+        res = session.get(url)
+        soup = BeautifulSoup(res.content, 'html.parser')
+        
+        i3_div = soup.find('div', id='i3')
+        if i3_div:
+            img_tag = i3_div.find('img')
+            if img_tag and img_tag.has_attr('src'):
+                img_url = img_tag['src']
+                image_name = os.path.basename(img_url)
+                image_path = os.path.join(download_path, image_name)
 
-        for attempt in range(1, MAX_RETRIES + 1):
-            time.sleep(random.uniform(1, 2))  # Short delay before retry
-            try:
-                response = session.get(url, timeout=10)
-                if response.status_code == 200:
-                    with open(image_path, 'wb') as f:
-                        f.write(response.content)
-                    print(f"Downloaded ({imagecounter}/{url_count}): {image_name}")
-                    break  # Exit retry loop on success
-                else:
-                    print(f"Attempt {attempt}: Failed to download {image_name} (status {response.status_code})")
-            except Exception as e:
-                print(f"Attempt {attempt}: Error downloading {image_name} - {e}")
-            
-            if attempt < MAX_RETRIES:
-                time.sleep(random.uniform(2, 3))  # Short delay before retry
+                max_retries = 5
+                for attempt in range(1, max_retries + 1):
+                    try:
+                        res = session.get(img_url, timeout=10)
+                        if res.status_code == 200:
+                            with open(image_path, 'wb') as f:
+                                f.write(res.content)
+                            print(f"Downloaded: {image_name}")
+                            all_gallery_image_urls.append(img_url)
+                            imagecounter += 1
+                            break
+                        else:
+                            print(f"Attempt {attempt}: Failed to download (status code {res.status_code})")
+                    except Exception as e:
+                        print(f"Attempt {attempt}: Error downloading {img_url} — {e}")
 
+                    if attempt < max_retries:
+                        time.sleep(random.uniform(2, 3))
+                        retryAttemps += 1
+                    else:
+                        print(f"Failed to download after {max_retries} attempts: {img_url}")
+                        all_failed_gallery_image_urls.append(img_url)
+                        imagesFailed += 1
+            else:
+                print("Image tag with 'src' not found in div#i3")
         else:
-            print(f"Failed to download {image_name} after {MAX_RETRIES} attempts.")
-            imagesFailed += 1
-            failed_urls.append(url)
+            print("div#i3 not found in the HTML")
 
-        # Delay after each successful or failed download attempt
-        time.sleep(random.uniform(4, 5))
+    
 
-    # save failed URLs
-    with open(os.path.join(download_path_meta, "FailedImageURLs.txt"), 'w', encoding='utf-8') as f:
-         for page in all_original_image_urls:
+    with open(os.path.join(download_path_meta, "GalleryImageURLsDownloaded.txt"), 'w', encoding='utf-8') as f:
+         for page in all_gallery_image_urls:
             f.write(page + '\n')
-    print(f"{imagesFailed} images unable to download")
-    print(f"{imagesFailed} failed URLs saved")
-
-
-    print("Finshed downloading Gallery")
-
-
+    print(f"Saved Gallery Image Urls")
+    with open(os.path.join(download_path_meta, "GalleryImageURLsFailed.txt"), 'w', encoding='utf-8') as f:
+         for page in all_failed_gallery_image_urls:
+            f.write(page + '\n')
+    print(f"Saved Failed Gallery Image Urls")
+    
+    
     # Update Lists
     # Failed
     if imagesFailed >= 1:
@@ -288,5 +276,74 @@ while lines:
     if imagesFailed == 0:
         with open(os.path.join(current_directory, "DownloadedGalleries.txt"), 'a', encoding='utf-8') as f:
             f.write(url + '\n')
+            
+    print("Cooldown of 20 to 30 seconds for anti scraping detection")        
+    time.sleep(random.uniform(20, 30))
+
+# Rest doesnt work because of GP limit
+#     # --- Step 5: Get Gallery Original Image URLs ---
+#     all_original_image_urls = []
+#     for url in all_image_page_urls:
+#         res = session.get(url)
+#         soup = BeautifulSoup(res.content, 'html.parser')
+#         
+#         i6_div = soup.find('div', id='i6')
+#         if i6_div:
+#             inner_divs = i6_div.find_all('div')
+#             if len(inner_divs) >= 3:
+#                 third_div = inner_divs[2]
+#                 a_tag = third_div.find('a', href=True)
+#                 if a_tag:
+#                     href = a_tag['href']
+#                     print(href)
+#                     all_original_image_urls.append(href)
+# 
+#     with open(os.path.join(download_path_meta, "OriginalImageURLs.txt"), 'w', encoding='utf-8') as f:
+#          for page in all_original_image_urls:
+#             f.write(page + '\n')
+#     print(f"Saved Original Image Urls")
+
+
+#     # --- Step 6: Download Original Images ---
+#     MAX_RETRIES = 5
+#     imagesFailed = 0
+#     retryAttemps = 0
+#     imagecounter = 0
+#     failed_urls = []
+#     url_count = len(all_original_image_urls)
+#     for url in all_original_image_urls:
+#         imagecounter += 1
+#         image_name = os.path.basename(url)
+#         image_path = os.path.join(download_path, image_name)
+# 
+#         for attempt in range(1, MAX_RETRIES + 1):
+#             time.sleep(random.uniform(1, 2))  # Short delay before retry
+#             try:
+#                 response = session.get(url, timeout=10)
+#                 if response.status_code == 200:
+#                     with open(image_path, 'wb') as f:
+#                         f.write(response.content)
+#                     print(f"Downloaded ({imagecounter}/{url_count}): {image_name}")
+#                     break  # Exit retry loop on success
+#                 else:
+#                     print(f"Attempt {attempt}: Failed to download {image_name} (status {response.status_code})")
+#             except Exception as e:
+#                 print(f"Attempt {attempt}: Error downloading {image_name} - {e}")
+#             
+#             if attempt < MAX_RETRIES:
+#                 time.sleep(random.uniform(2, 3))  # Short delay before retry
+# 
+#         else:
+#             print(f"Failed to download {image_name} after {MAX_RETRIES} attempts.")
+#             imagesFailed += 1
+#             failed_urls.append(url)
+# 
+#         # Delay after each successful or failed download attempt
+#         time.sleep(random.uniform(4, 5))
+        
+
+
+
+    
     
 exit(1)
