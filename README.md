@@ -3,7 +3,7 @@ Light weight downloader for exhentai.org
 
 ## Install
 
-0. Install Python, Pythong Request Package, Python BeautifulSoup4 Package (ask chatgpt for help with that if you need)
+0. Install Python, Pythong Request Package, Python BeautifulSoup4 Package (ask chatgpt for help with that or any other missing python packages, since I cant know what you have installed on your pc)
 
 1. download the files and put them where you want your exhentai downloads to go
 
