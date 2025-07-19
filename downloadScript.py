@@ -4,11 +4,14 @@ import time
 import re
 import random
 import requests
+import hashlib
 from bs4 import BeautifulSoup
 
 # --- Setup ---
 current_directory = os.getcwd()
 print(current_directory)
+
+
 with open('GalleriesToDownload.txt', 'r') as file:
     lines = file.readlines()
 if not lines:
@@ -21,7 +24,14 @@ gallery_count_initial = len(lines)
 print(f"{gallery_count_initial} galleries to download")
 gallery_counter = 0
 failed_gallery_counter = 0
+pause_after_X_galleries = 25
+pause_after_X_galleries_counter = 0
 while lines:
+    pause_after_X_galleries_counter += 1
+    if pause_after_X_galleries_counter >= pause_after_X_galleries:
+        pause_after_X_galleries_counter = 0
+        time.sleep(6*3600)
+        
     gallery_count = len(lines)
     print(f"{gallery_counter} galleries downloaded")
     print(f"{gallery_count} of {gallery_count_initial} galleries left to download")
@@ -53,6 +63,11 @@ while lines:
         print("Page exists and is reachable.")
     else:
         print(f"Page not reachable, status code: {response.status_code}")
+        failed_gallery_counter += 1
+        with open(os.path.join(current_directory, "FailedToDownloadGalleries.txt"), 'a', encoding='utf-8') as f:
+            f.write(GALLERY_URL + '\n')
+        continue  
+        
 
     soup = BeautifulSoup(res.content, 'html.parser')
     ## Print the entire parsed HTML
@@ -229,7 +244,10 @@ while lines:
             img_tag = i3_div.find('img')
             if img_tag and img_tag.has_attr('src'):
                 img_url = img_tag['src']
-                image_name = os.path.basename(img_url)
+                base_name = os.path.basename(img_url)
+                url_hash = hashlib.md5(img_url.encode('utf-8')).hexdigest()[:8]
+                name, ext = os.path.splitext(base_name)
+                image_name = f"{name}_{url_hash}{ext}"
                 image_path = os.path.join(download_path, image_name)
 
                 max_retries = 5
@@ -278,14 +296,19 @@ while lines:
     if imagesFailed >= 1:
         failed_gallery_counter += 1
         with open(os.path.join(current_directory, "FailedToDownloadGalleries.txt"), 'a', encoding='utf-8') as f:
-            f.write(url + '\n')
+            f.write(GALLERY_URL + '\n')
+    if len(all_gallery_image_urls) < 2:
+        failed_gallery_counter += 1
+        with open(os.path.join(current_directory, "FailedToDownloadGalleries.txt"), 'a', encoding='utf-8') as f:
+            f.write(GALLERY_URL + '\n')
     # Update ToDownload file
     with open("GalleriesToDownload.txt", "w", encoding="utf-8") as f:
         f.writelines(lines)
     # Update Galleries Downloaded Successfully file
     if imagesFailed == 0:
-        with open(os.path.join(current_directory, "DownloadedGalleries.txt"), 'a', encoding='utf-8') as f:
-            f.write(url + '\n')
+        if len(all_gallery_image_urls) > 2:
+            with open(os.path.join(current_directory, "DownloadedGalleries.txt"), 'a', encoding='utf-8') as f:
+                f.write(GALLERY_URL + '\n')
     
     print("Download Completed")
     gallery_counter += 1
